@@ -9,3 +9,46 @@
 // the screen should be cleared.
 
 //// Replace this comment with your code.
+
+  (MAIN_LOOP)
+    @color
+    M=0 // デフォルト白
+
+    @KBD
+    D=M
+    @SKIP_BLACK
+    D;JEQ  // D==0(デフォルト白)ならSKIP_BLACKへ
+
+    @color
+    M=-1   // 黒
+
+    (SKIP_BLACK)
+      @SCREEN
+      D=A
+      @addr
+      M=D
+
+      (LOOP)
+        @addr
+        D=M
+        @KBD
+        D=D-A
+        @MAIN_LOOP
+        D;JGE  // KBDのアドレスまで来たら MAIN_LOOP へ戻る
+
+	// 色を取得
+	@color
+	D=M
+
+	// 色を設定
+        @addr
+        A=M
+        M=D
+
+	// アドレスをカウントアップ
+	@addr
+        M=M+1
+
+        @LOOP
+        0;JMP
+
