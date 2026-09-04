@@ -32,5 +32,40 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	//// Replace this comment with your code.
+    // A命令の時
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=aInput);
+    Not(in=instruction[15], out=isA);
+    // C命令かつdest-Aビットが立っている時
+    And(a=instruction[15], b=instruction[5], out=cInstDestA);
+    Or(a=isA, b=cInstDestA, out=loadA);
+
+    ARegister(in=aInput, load=loadA, out=aOut, out[0..14]=addressM);
+
+    Mux16(a=aOut, b=inM, sel=instruction[12], out=aOrM);
+    ALU(x=dOut, y=aOrM,
+        zx=instruction[11], nx=instruction[10],
+        zy=instruction[9],  ny=instruction[8],
+        f=instruction[7],   no=instruction[6],
+        out=aluOut, out=outM, zr=zr, ng=ng);
+
+    And(a=instruction[15], b=instruction[4], out=loadD);  // C命令かつdest-D    
+    DRegister(in=aluOut, load=loadD, out=dOut);
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // ジャンプ
+    // out < 0 && j1 => 負によるジャンプ
+    And(a=instruction[2], b=ng, out=jmpNeg);
+    // out == 0 && j2 => ゼロによるジャンプ
+    And(a=instruction[1], b=zr, out=jmpZero);
+    // out > 0 && j3 => 正によるジャンプ
+    Or(a=zr, b=ng, out=zeroOrNeg); // ゼロまたは負
+    Not(in=zeroOrNeg, out=pos); // 正
+    And(a=instruction[0], b=pos, out=jmpPos);
+    // どれか一つでも成立したらジャンプ
+    Or(a=jmpNeg, b=jmpZero, out=jump1);
+    Or(a=jump1, b=jmpPos, out=jumpMaybe);
+    // C命令かつジャンプ条件成立
+    And(a=instruction[15], b=jumpMaybe, out=jump);
+
+    PC(in=aOut, load=jump, inc=true, reset=reset, out[0..14]=pc);
 }
